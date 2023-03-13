@@ -13,4 +13,4 @@ pip install -r requirements.txt` from project directory.
 ## Running The Script
 To run the script, simply run `python importwd.py` from the project directory.
 
-To specify the file path instead of using the default, run `python importwd.py path/to/excel/file.xlsx` from the project directory.
+To specify the file path instead of using the default, run `python importwd.py "path/to/excel file.xlsx"` from the project directory.
