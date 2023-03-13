@@ -51,7 +51,7 @@ def parse_event (row):
     event.add_component(alarm)
 
     eventDays = str.join(", ", event['rrule']['BYDAY'])
-    print(f"Calendar event:\nSummary: {event['summary']}\Description: {event['description']}\nRepeats on {eventDays} until {event['rrule']['UNTIL'] - datetime.timedelta(days=1):%A, %B %d %y}\nReminder {warning} minutes before the event")
+    print(f"Calendar event:\nSummary: {event['summary']}\nLocation: {event['location']}\nRepeats on {eventDays} until {event['rrule']['UNTIL'] - datetime.timedelta(days=1):%A, %B %d %y}\nReminder {warning} minutes before the event")
     print()
     return event
 
