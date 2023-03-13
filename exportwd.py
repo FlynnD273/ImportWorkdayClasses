@@ -1,37 +1,31 @@
 from icalendar import Calendar, Event, Alarm
 import pytz
 import datetime
-from datetime import datetime as dutil
+from datetime import datetime as dt
 import pandas as pd
 import sys
 import uuid
 
-warning = -15 # How many minutes before class to show reminder
-timezone = 'US/Eastern'
+warning = 15 # How many minutes before class to show reminder
+timezone = 'US/Eastern' # The time zone to use for the calendar events
 
-def parse_event (index):
+def parse_event (row):
     event = Event()
     event['uid'] = str(uuid.uuid4())
-    event.add('dtstamp', dutil.now())
+    event.add('dtstamp', dt.now())
 
-    event.add('summary', dp['Course Listing'][index] + ' | ' + dp['Instructional Format'][index])
-    event.add('description', dp['Delivery Mode'][index])
+    event.add('summary', row.course_listing + ' | ' + row.instructional_format)
+    event.add('description', row.delivery_mode)
 
-    meeting_pat = dp['Meeting Patterns'][index].strip().split('|')
+    meeting_pat = row.meeting_patterns.strip().split('|')
     event.add('location', meeting_pat[2])
 
     times = meeting_pat[1].split(' - ')
-    start = times[0].split(':')
-    end = times[1].split(':')
-    startTime = int(start[0])
-    startMinutes = int(start[1][0:2])
-    endTime = int(end[0])
-    endMinutes = int(end[1][0:2])
+    start = dt.strptime(times[0].strip(), "%I:%M %p")
+    start.replace(tzinfo=pytz.timezone(timezone))
 
-    if 'PM' in start[1] and int(start[0]) != 12:
-        startTime += 12
-    if 'PM' in end[1] and int(end[0]) != 12:
-        endTime += 12
+    end = dt.strptime(times[1].strip(), "%I:%M %p")
+    end.replace(tzinfo=pytz.timezone(timezone))
 
     workdayToIcal = {'M': 'mo', 'T': 'tu', 'W': 'we', 'R': 'th', 'F': 'fr'}
     weekdays = list(workdayToIcal.values())
@@ -40,29 +34,35 @@ def parse_event (index):
         if letter in meeting_pat[0]:
             days.append(workdayToIcal[letter])
 
-    startDate = dp['Start Date'][index].date()
+    startDate = row.start_date.date()
     while startDate.weekday() >= len(weekdays) or weekdays[startDate.weekday()] not in days:
         startDate = datetime.date(startDate.year, startDate.month, startDate.day + 1)
 
-    print(f"{dp['Course Listing'][index]} | {dp['Instructional Format'][index]}")
-    print(meeting_pat[1].strip())
-    print(f"{startTime:02d}:{startMinutes:02d} - {endTime:02d}:{endMinutes:02d}")
-    print()
+    print(event['summary'])
+    print(f"Given time: {meeting_pat[1].strip()}")
+    print(f"Parsed time: {start:%I:%M %p} - {end:%I:%M %p}")
 
-    event.add('dtstart', dutil.combine(startDate, datetime.time(startTime, startMinutes, tzinfo=pytz.timezone(timezone))))
-    event.add('dtend', dutil.combine(startDate, datetime.time(endTime, endMinutes, tzinfo=pytz.timezone(timezone))))
-    event.add('rrule', {'freq': 'weekly', 'until': dp['End Date'][index].date() + datetime.timedelta(days=1), 'byday': days})
+    event.add('dtstart', dt.combine(startDate, start.timetz()))
+    event.add('dtend', dt.combine(startDate, end.timetz()))
+    event.add('rrule', {'freq': 'weekly', 'until': row.end_date.date() + datetime.timedelta(days=1), 'byday': days})
     alarm = Alarm()
     alarm.add('action', 'DISPLAY')
-    alarm.add('trigger', datetime.timedelta(minutes = -warning))
+    alarm.add('trigger', datetime.timedelta(minutes = warning))
     event.add_component(alarm)
+
+    eventDays = str.join(", ", event['rrule']['BYDAY'])
+    print(f"Calendar event:\nSummary: {event['summary']}\Description: {event['description']}\nRepeats on {eventDays} until {event['rrule']['UNTIL'] - datetime.timedelta(days=1):%A, %B %d %y}\nReminder {warning} minutes before the event")
+    print()
     return event
 
 path = 'View_My_Courses.xlsx'
 if len(sys.argv) > 1:
     path = sys.argv[1]
 
-dp = pd.read_excel(path, sheet_name=0, skiprows=[0, 1])
+excelData = pd.read_excel(path, sheet_name=0, skiprows=[0, 1])
+
+# Replace names with spaces to names with underscores and convert to lowercase
+excelData.columns = [c.lower().replace(' ', '_') for c in excelData.columns]
 
 # RRULE:FREQ=WEEKLY;COUNT=30;BYDAY=MO,TU,TH,FR
 
@@ -72,11 +72,11 @@ dp = pd.read_excel(path, sheet_name=0, skiprows=[0, 1])
 # 'End Date' goes to series end date
 
 cal = Calendar()
-cal.add('prodid', '-//My calendar product//mxm.dk//')
+cal.add('prodid', '-//Workday Class Schedule//https://github.com/FlynnD273/ImportWorkdayClasses//')
 cal.add('version', '2.0')
 
-for index in range(len(dp['Course Listing'])):
-    cal.add_component(parse_event(index))
+for row in excelData.itertuples():
+    cal.add_component(parse_event(row))
 
 f = open('Workday Schedule.ics', 'wb')
 f.write(cal.to_ical())
