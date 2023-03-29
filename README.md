@@ -1,6 +1,8 @@
 # ImportWorkdayClasses
 Converts an Excel spreadsheet containing a class schedule downloaded from Workday to an iCalendar file that you can import into any calendar app (for example, Outlook) 
 
+This project was mostly made so I could practice using Python more. At WPI, I can download my class schedule as an Excel spreadsheet. This Python script will read that Excel spreadsheet and generate an iCalendar file that I can import into my calendar. This involves parsing times from text, and using pandas to read the Excel spreadsheet into a dataframe. I also had to learn about the iCalendar format and how the different properties work together. 
+
 I haven't added much in the way of customization. So far, you can change the number of minutes before the event you want a reminder and the time zone. You can also specify the path to the Excel file by including it as a command-line argument.
 
 By default, the Python script will read a file called `View_My_Courses.xlsx` in the same directory as the script, and output a file called `Workday Schedule.ics` as the output. The input file location can be changed using command-line arguments. It will also print out the classes in the console so you can double-check that it's correct before importing the ics file into your calendar.
