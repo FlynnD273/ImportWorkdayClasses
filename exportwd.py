@@ -1,5 +1,5 @@
 from icalendar import Calendar, Event, Alarm
-import pytz
+from zoneinfo import ZoneInfo
 import datetime
 from datetime import datetime as dt
 import pandas as pd
@@ -7,7 +7,7 @@ import sys
 import uuid
 
 warning = 15 # How many minutes before class to show reminder
-timezone = 'US/Eastern' # The time zone to use for the calendar events
+timezone = 'America/New_York' # The time zone to use for the calendar events
 
 def parse_event (row):
     event = Event()
@@ -22,10 +22,10 @@ def parse_event (row):
 
     times = meeting_pat[1].split(' - ')
     start = dt.strptime(times[0].strip(), "%I:%M %p")
-    start.replace(tzinfo=pytz.timezone(timezone))
+    start = start.replace(tzinfo=ZoneInfo(timezone))
 
     end = dt.strptime(times[1].strip(), "%I:%M %p")
-    end.replace(tzinfo=pytz.timezone(timezone))
+    end = end.replace(tzinfo=ZoneInfo(timezone))
 
     workdayToIcal = {'M': 'mo', 'T': 'tu', 'W': 'we', 'R': 'th', 'F': 'fr'}
     weekdays = list(workdayToIcal.values())
@@ -38,10 +38,6 @@ def parse_event (row):
     while startDate.weekday() >= len(weekdays) or weekdays[startDate.weekday()] not in days:
         startDate = datetime.date(startDate.year, startDate.month, startDate.day + 1)
 
-    print(event['summary'])
-    print(f"Given time: {meeting_pat[1].strip()}")
-    print(f"Parsed time: {start:%I:%M %p} - {end:%I:%M %p}")
-
     event.add('dtstart', dt.combine(startDate, start.timetz()))
     event.add('dtend', dt.combine(startDate, end.timetz()))
     event.add('rrule', {'freq': 'weekly', 'until': row.end_date.date() + datetime.timedelta(days=1), 'byday': days})
@@ -53,6 +49,11 @@ def parse_event (row):
     event.add_component(alarm)
 
     eventDays = str.join(", ", event['rrule']['BYDAY'])
+
+    print(event['summary'])
+    print(f"Given time: {meeting_pat[1].strip()}")
+    print(f"Parsed time: {start:%I:%M %p} - {end:%I:%M %p}")
+
     print(f"Calendar event:\nSummary: {event['summary']}\nLocation: {event['location']}\nRepeats on {eventDays} until {event['rrule']['UNTIL'] - datetime.timedelta(days=1):%A, %B %d %y}\nReminder {warning} minutes before the event")
     print()
     return event
