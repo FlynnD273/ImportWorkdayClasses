@@ -1,5 +1,5 @@
 icalendar
 pandas
-arrow
+pytz
 xlrd
 openpyxl
