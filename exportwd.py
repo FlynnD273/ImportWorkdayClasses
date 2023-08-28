@@ -44,7 +44,7 @@ def parse_event (row):
 
     alarm = Alarm()
     alarm.add('action', 'DISPLAY')
-    alarm.add('trigger', datetime.timedelta(minutes = warning))
+    alarm.add('trigger', datetime.timedelta(minutes = -warning))
     alarm.add('description', "display a notification for the event")
     event.add_component(alarm)
 
