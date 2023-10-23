@@ -7,9 +7,11 @@ import sys
 import uuid
 
 warning = 15 # How many minutes before class to show reminder
-timezone = 'America/New_York' # The time zone to use for the calendar events
+timezone = 'US/Eastern' # The time zone to use for the calendar events
 
-def parse_event (row):
+def parse_event (row) -> Event | None:
+    if isinstance(row.meeting_patterns, float):
+        return None
     event = Event()
     event['uid'] = str(uuid.uuid4())
     event.add('dtstamp', dt.now())
@@ -79,7 +81,9 @@ cal.add('prodid', '-//Workday Class Schedule//https://github.com/FlynnD273/Impor
 cal.add('version', '2.0')
 
 for row in excelData.itertuples():
-    cal.add_component(parse_event(row))
+    event = parse_event(row)
+    if event:
+        cal.add_component(event)
 
 f = open('Workday Schedule.ics', 'wb')
 f.write(cal.to_ical())
